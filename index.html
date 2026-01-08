@@ -56,10 +56,6 @@
   const ambLight = new THREE.AmbientLight(0xffffff, 0.4);
   scene.add(ambLight);
 
-  // (Для отладки) Оси координат
-  const axes = new THREE.AxesHelper(2);
-  scene.add(axes);
-
   // Загрузка модели
   const loader = new GLTFLoader();
   loader.load(
@@ -91,3 +87,4 @@
 
 </body>
 </html>
+
