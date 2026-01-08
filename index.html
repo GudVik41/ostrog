@@ -30,47 +30,68 @@
       pointer-events: none;
     }
 
-    /* ===== UI камер ===== */
-    #ui {
+    /* ===== Общие панели ===== */
+    .panel {
       position: fixed;
-      top: 60px;
-      left: 10px;
       background: rgba(0, 0, 0, 0.6);
-      padding: 10px;
       border-radius: 8px;
       color: white;
       z-index: 10;
-      width: 220px;
+      width: 230px;
+      overflow: hidden;
     }
 
-    #ui h3 {
-      margin: 0 0 6px 0;
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 10px;
       font-size: 14px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .panel-header span {
+      font-weight: bold;
+    }
+
+    .panel-content {
+      padding: 8px 10px;
+      font-size: 13px;
+    }
+
+    .panel.collapsed .panel-content {
+      display: none;
+    }
+
+    .toggle {
+      font-size: 14px;
+    }
+
+    /* ===== Панель видов ===== */
+    #views-panel {
+      top: 60px;
+      left: 10px;
     }
 
     label {
       display: block;
       margin-bottom: 4px;
       cursor: pointer;
-      font-size: 13px;
     }
 
     /* ===== Debug камеры ===== */
-    #camera-debug {
-      position: fixed;
+    #camera-panel {
       bottom: 10px;
       left: 10px;
-      background: rgba(0, 0, 0, 0.7);
-      color: #00ffcc;
       font-family: monospace;
-      font-size: 12px;
-      padding: 8px 10px;
-      border-radius: 6px;
-      z-index: 20;
-      pointer-events: none;
-      line-height: 1.4;
-      min-width: 220px;
+      color: #00ffcc;
+    }
+
+    #camera-panel .panel-content {
       white-space: pre;
+      font-size: 12px;
+      line-height: 1.4;
     }
   </style>
 
@@ -86,22 +107,30 @@
 
 <body>
 
-<!-- Название текущего вида -->
 <div id="view-title">1693 год</div>
 
-<!-- UI -->
-<div id="ui">
-  <h3>Виды</h3>
-
-  <label><input type="radio" name="camera" value="cam1693" checked> 1693 год</label>
-  <label><input type="radio" name="camera" value="cam1735"> 1735 год</label>
-  <label><input type="radio" name="camera" value="front"> Передний план</label>
-  <label><input type="radio" name="camera" value="back"> Задний план</label>
-  <label><input type="radio" name="camera" value="top"> Вид сверху</label>
+<!-- ===== Виды ===== -->
+<div id="views-panel" class="panel">
+  <div class="panel-header">
+    <span>Виды</span>
+    <div class="toggle">▼</div>
+  </div>
+  <div class="panel-content">
+    <label><input type="radio" name="camera" value="cam1693" checked> 1693 год</label>
+    <label><input type="radio" name="camera" value="cam1735"> 1735 год</label>
+    <label><input type="radio" name="camera" value="front"> Передний план</label>
+    <label><input type="radio" name="camera" value="back"> Задний план</label>
+    <label><input type="radio" name="camera" value="top"> Вид сверху</label>
+  </div>
 </div>
 
-<!-- Debug block -->
-<div id="camera-debug">
+<!-- ===== Камера debug ===== -->
+<div id="camera-panel" class="panel">
+  <div class="panel-header">
+    <span>Camera</span>
+    <div class="toggle">▼</div>
+  </div>
+  <div class="panel-content" id="camera-debug">
 Camera position:
 x: 0
 y: 0
@@ -111,6 +140,7 @@ Rotation (deg):
 x: 0
 y: 0
 z: 0
+  </div>
 </div>
 
 <script type="module">
@@ -118,24 +148,14 @@ z: 0
   import { OrbitControls } from 'https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js';
   import { GLTFLoader } from 'https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
 
-  function degToRad(d) {
-    return d * Math.PI / 180;
-  }
-
-  function radToDeg(r) {
-    return r * 180 / Math.PI;
-  }
+  function degToRad(d) { return d * Math.PI / 180; }
+  function radToDeg(r) { return r * 180 / Math.PI; }
 
   /* ---------- Scene ---------- */
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x222222);
 
-  const camera = new THREE.PerspectiveCamera(
-    60,
-    window.innerWidth / window.innerHeight,
-    0.1,
-    2000
-  );
+  const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
 
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
@@ -150,7 +170,7 @@ z: 0
   dirLight.position.set(100, 200, 100);
   scene.add(dirLight);
 
-  /* ---------- Camera presets ---------- */
+  /* ---------- Камеры ---------- */
   const cameraPresets = {
     cam1693: {
       title: '1693 год',
@@ -185,7 +205,6 @@ z: 0
 
     camera.position.copy(p.position);
     camera.rotation.copy(p.rotation);
-
     controls.target.set(0, 0, 0);
     controls.update();
 
@@ -193,13 +212,18 @@ z: 0
   }
 
   document.querySelectorAll('input[name="camera"]').forEach(radio => {
-    radio.addEventListener('change', e => {
-      setCamera(e.target.value);
-    });
+    radio.addEventListener('change', e => setCamera(e.target.value));
   });
 
-  /* ---------- Debug elements ---------- */
-  const camDebug = document.getElementById('camera-debug');
+  /* ---------- Toggle panels ---------- */
+  document.querySelectorAll('.panel-header').forEach(header => {
+    header.addEventListener('click', () => {
+      const panel = header.parentElement;
+      panel.classList.toggle('collapsed');
+      header.querySelector('.toggle').textContent =
+        panel.classList.contains('collapsed') ? '▶' : '▼';
+    });
+  });
 
   /* ---------- Model ---------- */
   const loader = new GLTFLoader();
@@ -207,6 +231,8 @@ z: 0
     scene.add(gltf.scene);
     setCamera('cam1693');
   });
+
+  const camDebug = document.getElementById('camera-debug');
 
   function animate() {
     requestAnimationFrame(animate);
