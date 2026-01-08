@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>3D Viewer</title>
+
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+    }
+
+    canvas {
+      display: block;
+    }
+
+    /* Заголовок сверху */
+    #view-title {
+      position: fixed;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.6);
+      color: white;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 16px;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    /* Панель управления */
+    #ui {
+      position: fixed;
+      top: 60px;
+      left: 10px;
+      background: rgba(0, 0, 0, 0.6);
+      padding: 10px;
+      border-radius: 8px;
+      color: white;
+      z-index: 10;
+      width: 220px;
+    }
+
+    #ui h3 {
+      margin: 0 0 6px 0;
+      font-size: 14px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 4px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+  </style>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+    }
+  }
+  </script>
+</head>
+
+<body>
+
+<!-- Название текущего вида -->
+<div id="view-title">1693 год</div>
+
+<!-- UI -->
+<div id="ui">
+  <h3>Виды</h3>
+
+  <label><input type="radio" name="camera" value="cam1693" checked> 1693 год</label>
+  <label><input type="radio" name="camera" value="cam1735"> 1735 год</label>
+  <label><input type="radio" name="camera" value="front"> Передний план</label>
+  <label><input type="radio" name="camera" value="back"> Задний план</label>
+  <label><input type="radio" name="camera" value="top"> Вид сверху</label>
+</div>
+
+<script type="module">
+  import * as THREE from 'three';
+  import { OrbitControls } from 'https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+  import { GLTFLoader } from 'https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
+
+  function degToRad(d) {
+    return d * Math.PI / 180;
+  }
+
+  /* ---------- Scene ---------- */
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x222222);
+
+  const camera = new THREE.PerspectiveCamera(
+    60,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    2000
+  );
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  document.body.appendChild(renderer.domElement);
+
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+
+  scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+
+  const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+  dirLight.position.set(100, 200, 100);
+  scene.add(dirLight);
+
+  /* ---------- Camera presets ---------- */
+  const cameraPresets = {
+    cam1693: {
+      title: '1693 год',
+      position: new THREE.Vector3(-72.6579, 10.5874, 102.552),
+      rotation: new THREE.Euler(degToRad(86), 0, degToRad(31.7965))
+    },
+    cam1735: {
+      title: '1735 год',
+      position: new THREE.Vector3(-64.27, 10.5095, 106.35),
+      rotation: new THREE.Euler(degToRad(86), 0, degToRad(388.486))
+    },
+    front: {
+      title: 'Передний план',
+      position: new THREE.Vector3(-87.348, 130.628, 83.334),
+      rotation: new THREE.Euler(degToRad(40.0001), 0, degToRad(44.4035))
+    },
+    back: {
+      title: 'Задний план',
+      position: new THREE.Vector3(81.8463, 110.698, -73.2874),
+      rotation: new THREE.Euler(degToRad(40), 0, degToRad(-135.596))
+    },
+    top: {
+      title: 'Вид сверху',
+      position: new THREE.Vector3(0, 167.064, 0),
+      rotation: new THREE.Euler(0, 0, 0)
+    }
+  };
+
+  function setCamera(name) {
+    const p = cameraPresets[name];
+    if (!p) return;
+
+    camera.position.copy(p.position);
+    camera.rotation.copy(p.rotation);
+
+    controls.target.set(0, 0, 0);
+    controls.update();
+
+    document.getElementById('view-title').textContent = p.title;
+  }
+
+  document.querySelectorAll('input[name="camera"]').forEach(radio => {
+    radio.addEventListener('change', e => {
+      setCamera(e.target.value);
+    });
+  });
+
+  /* ---------- Model ---------- */
+  const loader = new GLTFLoader();
+  loader.load('./model/model.glb', gltf => {
+    scene.add(gltf.scene);
+    setCamera('cam1693');
+  });
+
+  function animate() {
+    requestAnimationFrame(animate);
+    controls.update();
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+</script>
+
+</body>
+</html>
